@@ -155,11 +155,11 @@ elif st.session_state.step == 'age':
     
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("老年 👴 Aged 75 or older", use_container_width=True):
+        if st.button("👴 Aged 75 or older", use_container_width=True):
             navigate_to('age75', 'age', 'gte75')
             st.rerun()
     with col2:
-        if st.button("青年 🧑 Under 75", use_container_width=True):
+        if st.button("🧑 Under 75", use_container_width=True):
             navigate_to('risk', 'age', 'lt75')
             st.rerun()
 
