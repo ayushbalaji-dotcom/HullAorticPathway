@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AS Intervention Pathway Decision Tool</title>
+<style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0f4f8; color: #1a2332; min-height: 100vh;
+}
+header {
+  background: linear-gradient(135deg, #0f3a6e 0%, #1a5ca8 100%);
+  color: #fff; padding: 18px 28px;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.2);
+}
+.hdr-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: rgba(255,255,255,.15);
+  display: flex; align-items: center; justify-content: center; font-size: 20px;
+}
+header h1 { font-size: 1.1rem; font-weight: 700; }
+header p  { font-size: .78rem; opacity: .7; margin-top: 2px; }
+
+.layout {
+  display: grid; grid-template-columns: 1fr 400px;
+  min-height: calc(100vh - 76px);
+}
+
+/* Tree panel */
+.tree-panel {
+  background: #f8fafc; border-right: 1px solid #d1d9e0;
+  padding: 20px 16px 32px; overflow-y: auto;
+}
+.panel-label {
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: #5a6a7e; margin-bottom: 14px;
+}
+#tree-svg { width: 100%; display: block; }
+.legend {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 14px; padding: 0 2px;
+}
+.leg { display: flex; align-items: center; gap: 5px; font-size: .71rem; color: #5a6a7e; }
+.leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+/* Question panel */
+.q-panel {
+  background: #fff; padding: 24px 22px; overflow-y: auto;
+}
+.prog-track {
+  height: 3px; background: #d1d9e0; border-radius: 2px;
+  margin-bottom: 26px; overflow: hidden;
+}
+.prog-fill {
+  height: 100%; background: linear-gradient(90deg,#1e6fba,#42a5f5);
+  border-radius: 2px; transition: width .4s;
+}
+
+/* Card */
+.q-card { animation: up .25s ease; }
+@keyframes up { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+.q-tag {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .8px; color: #1e6fba; margin-bottom: 7px;
+}
+.q-title { font-size: 1rem; font-weight: 700; line-height: 1.4; margin-bottom: 5px; }
+.q-sub   { font-size: .81rem; color: #5a6a7e; line-height: 1.55; margin-bottom: 20px; }
+.q-sub b { color: #1a2332; }
+
+.btn-group { display: flex; flex-direction: column; gap: 9px; }
+.opt {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 13px 15px; border: 2px solid #d1d9e0;
+  border-radius: 10px; background: #fff; cursor: pointer; text-align: left;
+  transition: border-color .14s, background .14s;
+}
+.opt:hover { border-color: #1e6fba; background: #e8f2fd; }
+.opt-icon { font-size: 1rem; margin-top: 1px; min-width: 20px; text-align: center; }
+.opt-main { font-size: .88rem; font-weight: 600; }
+.opt-hint { font-size: .74rem; color: #5a6a7e; margin-top: 2px; font-weight: 400; }
+
+.num-wrap { display: flex; flex-direction: column; gap: 12px; }
+.num-label { font-size: .8rem; font-weight: 600; color: #5a6a7e; }
+.num-input {
+  padding: 11px 14px; border: 2px solid #d1d9e0; border-radius: 8px;
+  font-size: 1rem; outline: none; width: 100%; transition: border-color .14s;
+}
+.num-input:focus { border-color: #1e6fba; }
+.num-unit { font-size: .73rem; color: #5a6a7e; margin-top: 2px; }
+.go-btn {
+  padding: 13px; background: #1e6fba; color: #fff;
+  border: none; border-radius: 9px; font-size: .9rem; font-weight: 600;
+  cursor: pointer; transition: background .14s;
+}
+.go-btn:hover { background: #155fa0; }
+
+/* Results */
+.result { border-radius: 13px; padding: 22px; animation: up .3s ease; }
+.result.tavi { background: #e3f7ef; border: 2px solid #0d8a5c; }
+.result.savr { background: #fff0e3; border: 2px solid #b35900; }
+.result.mdt  { background: #f0eaff; border: 2px solid #6b35b5; }
+.r-title { font-size: 1.2rem; font-weight: 800; margin-bottom: 8px; }
+.result.tavi .r-title { color: #0d8a5c; }
+.result.savr .r-title { color: #b35900; }
+.result.mdt  .r-title { color: #6b35b5; }
+.r-body { font-size: .85rem; line-height: 1.6; margin-bottom: 14px; }
+.r-rat {
+  background: rgba(255,255,255,.55); border-radius: 7px;
+  padding: 10px 13px; font-size: .78rem; color: #5a6a7e; line-height: 1.6;
+}
+.r-rat b { color: #1a2332; }
+.restart {
+  margin-top: 18px; width: 100%; padding: 11px;
+  background: transparent; border: 2px solid #d1d9e0; border-radius: 8px;
+  font-size: .83rem; font-weight: 600; cursor: pointer; color: #5a6a7e;
+  transition: all .14s;
+}
+.restart:hover { border-color: #5a6a7e; color: #1a2332; }
+.back {
+  background: none; border: none; color: #1e6fba; font-size: .8rem;
+  cursor: pointer; margin-bottom: 18px; font-weight: 500; padding: 0;
+  display: flex; align-items: center; gap: 4px;
+}
+.back:hover { text-decoration: underline; }
+.disc {
+  margin-top: 16px; padding: 9px 12px;
+  background: #fff8e5; border-left: 3px solid #e6a817;
+  border-radius: 4px; font-size: .72rem; color: #7a5500; line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-icon">🫀</div>
+  <div>
+    <h1>Aortic Stenosis — Intervention Pathway Decision Tool</h1>
+    <p>Stratification between SAVR · TAVI · MDT Review</p>
+  </div>
+</header>
+
+<div class="layout">
+  <div class="tree-panel">
+    <div class="panel-label">Decision Tree</div>
+    <svg id="tree-svg" viewBox="0 0 760 800" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block"></svg>
+    <div class="legend">
+      <div class="leg"><div class="leg-dot" style="background:#deeeff;border:1.5px solid #1e6fba"></div>Decision</div>
+      <div class="leg"><div class="leg-dot" style="background:#e8f5ee;border:1.5px solid #198754"></div>Severe AS confirmed</div>
+      <div class="leg"><div class="leg-dot" style="background:#e3f7ef;border:1.5px solid #0d8a5c"></div>TAVI</div>
+      <div class="leg"><div class="leg-dot" style="background:#fff0e3;border:1.5px solid #b35900"></div>SAVR</div>
+      <div class="leg"><div class="leg-dot" style="background:#f0eaff;border:1.5px solid #6b35b5"></div>MDT</div>
+    </div>
+  </div>
+
+  <div class="q-panel">
+    <div class="prog-track"><div class="prog-fill" id="prog" style="width:0%"></div></div>
+    <div id="qc"></div>
+  </div>
+</div>
+
+<script>
+var S = { step:'entry', ans:{}, hist:[], nodes:{}, edges:{} };
+
+/* ── NODE GEOMETRY ─────────────────────────────────────────── */
+var N = {
+  entry:      { cx:420, y:18,  w:240, h:56,  t:'dia',  lines:['Urgent High-Risk','Non-Cardiac Surgery?'] },
+  mdt_urg:    { cx:113, y:27,  w:155, h:38,  t:'pill', lines:['MDT Referral','(Immediate)'],      c:'mdt' },
+  echo:       { cx:420, y:125, w:225, h:40,  t:'box',  lines:['Echo Severity Assessment'] },
+  ct:         { cx:175, y:228, w:195, h:40,  t:'box',  lines:['CT Calcium Scoring'] },
+  severe:     { cx:575, y:228, w:175, h:40,  t:'box',  lines:['Severe AS Confirmed'],              c:'grn' },
+  ct_sex:     { cx:175, y:322, w:185, h:56,  t:'dia',  lines:['Patient Sex?'] },
+  mdt_ct:     { cx:58,  y:448, w:112, h:36,  t:'pill', lines:['MDT','(Unconfirmed AS)'],           c:'mdt' },
+  concom:     { cx:575, y:322, w:205, h:68,  t:'dia',  lines:['Concomitant Mod/Severe','Valve Disease?'] },
+  savr_m:     { cx:715, y:448, w:135, h:36,  t:'pill', lines:['SAVR / Multi-Valve'],               c:'savr' },
+  age:        { cx:575, y:458, w:185, h:56,  t:'dia',  lines:['Patient Age?'] },
+  risk:       { cx:290, y:590, w:170, h:56,  t:'dia',  lines:['Surgical Risk?'] },
+  age75:      { cx:600, y:585, w:215, h:68,  t:'dia',  lines:['Complex Comorbidities,','Frailty or CAD?'] },
+  mdt_hi:     { cx:88,  y:732, w:140, h:36,  t:'pill', lines:['MDT','(High Risk)'],                c:'mdt' },
+  savr:       { cx:290, y:732, w:135, h:36,  t:'pill', lines:['SAVR Pathway'],                     c:'savr' },
+  mdt_75:     { cx:508, y:732, w:155, h:36,  t:'pill', lines:['MDT','(TAVI vs Surgery)'],          c:'mdt' },
+  tavi:       { cx:683, y:732, w:135, h:36,  t:'pill', lines:['TAVI Pathway'],                     c:'tavi' },
+};
+
+/* colour map */
+var CM = {
+  tavi:{ f:'#e3f7ef', s:'#0d8a5c' },
+  savr:{ f:'#fff0e3', s:'#b35900' },
+  mdt: { f:'#f0eaff', s:'#6b35b5' },
+  grn: { f:'#e8f5ee', s:'#198754' },
+};
+var CI = { f:'#ffffff', s:'#c8d4df' };
+var CA = { f:'#deeeff', s:'#1e6fba' };
+
+/* ── EDGE DEFINITIONS ──────────────────────────────────────── */
+/* [ id, pathD, labelX, labelY, anchor, text ] */
+function edges() {
+  return [
+    ['e_entry_mdt',
+      'M'+(N.entry.cx-120)+','+( N.entry.y+28)+' L'+(N.mdt_urg.cx+78)+','+(N.entry.y+28),
+      195, 21, 'middle', 'Yes'],
+    ['e_entry_echo',
+      'M'+N.entry.cx+','+(N.entry.y+56)+' L'+N.entry.cx+','+N.echo.y,
+      432, 107, 'middle', 'No'],
+    ['e_echo_ct',
+      'M'+N.echo.cx+','+(N.echo.y+40)+' L'+N.echo.cx+','+(N.echo.y+57)+' L'+N.ct.cx+','+(N.echo.y+57)+' L'+N.ct.cx+','+N.ct.y,
+      275, 170, 'middle', 'Any criterion fails'],
+    ['e_echo_sv',
+      'M'+N.echo.cx+','+(N.echo.y+40)+' L'+N.echo.cx+','+(N.echo.y+57)+' L'+N.severe.cx+','+(N.echo.y+57)+' L'+N.severe.cx+','+N.severe.y,
+      512, 170, 'middle', 'All 3 met'],
+    ['e_ct_sex',
+      'M'+N.ct.cx+','+(N.ct.y+40)+' L'+N.ct.cx+','+N.ct_sex.y,
+      0,0,'middle',''],
+    ['e_sex_mdt',
+      'M'+(N.ct_sex.cx-93)+','+(N.ct_sex.y+28)+' L'+(N.mdt_ct.cx+56)+','+(N.ct_sex.y+28)+' L'+(N.mdt_ct.cx+56)+','+N.mdt_ct.y,
+      100, 400, 'middle', '≤ threshold'],
+    ['e_sex_sv',
+      'M'+(N.ct_sex.cx+93)+','+(N.ct_sex.y+28)+' L390,'+(N.ct_sex.y+28)+' L390,'+(N.severe.y+20)+' L'+(N.severe.cx-88)+','+(N.severe.y+20),
+      362, 322, 'end', '> threshold'],
+    ['e_sv_con',
+      'M'+N.severe.cx+','+(N.severe.y+40)+' L'+N.severe.cx+','+N.concom.y,
+      0,0,'middle',''],
+    ['e_con_sm',
+      'M'+(N.concom.cx+103)+','+(N.concom.y+34)+' L'+(N.savr_m.cx-68)+','+(N.concom.y+34)+' L'+(N.savr_m.cx-68)+','+N.savr_m.y,
+      678, 412, 'middle', 'Yes'],
+    ['e_con_age',
+      'M'+N.concom.cx+','+(N.concom.y+68)+' L'+N.concom.cx+','+N.age.y,
+      588, 432, 'start', 'No'],
+    ['e_age_75',
+      'M'+(N.age.cx+93)+','+(N.age.y+28)+' L'+(N.age75.cx-18)+','+(N.age.y+28)+' L'+(N.age75.cx-18)+','+N.age75.y,
+      618, 499, 'middle', '≥ 75'],
+    ['e_age_risk',
+      'M'+(N.age.cx-93)+','+(N.age.y+28)+' L'+(N.risk.cx+18)+','+(N.age.y+28)+' L'+(N.risk.cx+18)+','+N.risk.y,
+      428, 499, 'middle', '< 75'],
+    ['e_75_tavi',
+      'M'+(N.age75.cx+108)+','+(N.age75.y+34)+' L'+(N.tavi.cx+6)+','+(N.age75.y+34)+' L'+(N.tavi.cx+6)+','+N.tavi.y,
+      702, 652, 'middle', 'No'],
+    ['e_75_mdt',
+      'M'+N.age75.cx+','+(N.age75.y+68)+' L'+N.age75.cx+','+(N.mdt_75.y-15)+' L'+N.mdt_75.cx+','+(N.mdt_75.y-15)+' L'+N.mdt_75.cx+','+N.mdt_75.y,
+      555, 692, 'middle', 'Yes'],
+    ['e_risk_savr',
+      'M'+N.risk.cx+','+(N.risk.y+56)+' L'+N.risk.cx+','+N.savr.y,
+      282, 698, 'end', 'Low / Int'],
+    ['e_risk_mdt',
+      'M'+(N.risk.cx-85)+','+(N.risk.y+28)+' L'+(N.mdt_hi.cx+70)+','+(N.risk.y+28)+' L'+(N.mdt_hi.cx+70)+','+N.mdt_hi.y,
+      170, 642, 'middle', 'High'],
+  ];
+}
+
+/* ── RENDER SVG ────────────────────────────────────────────── */
+function drawTree() {
+  var svg = document.getElementById('tree-svg');
+  var html = '<defs>'
+    +'<marker id="a0" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#c8d4df"/></marker>'
+    +'<marker id="a1" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#1e6fba"/></marker>'
+    +'</defs>';
+
+  /* edges */
+  edges().forEach(function(e) {
+    var id=e[0],d=e[1],lx=e[2],ly=e[3],anc=e[4],txt=e[5];
+    var on = !!S.edges[id];
+    html += '<path d="'+d+'" fill="none" stroke="'+(on?'#1e6fba':'#c8d4df')+'" stroke-width="'+(on?2.5:1.5)+'" marker-end="url(#'+(on?'a1':'a0')+')"/>';
+    if (txt) html += '<text x="'+lx+'" y="'+ly+'" text-anchor="'+anc+'" font-size="9.5" fill="'+(on?'#1e6fba':'#94a3b8')+'" font-family="-apple-system,sans-serif"'+(on?' font-weight="700"':'')+'>'+txt+'</text>';
+  });
+
+  /* nodes */
+  Object.keys(N).forEach(function(id) {
+    var n = N[id];
+    var on = !!S.nodes[id];
+    var col = n.c ? CM[n.c] : (on ? CA : CI);
+    var sw  = on ? 2.5 : 1.5;
+    var lh  = 13, th = n.lines.length * lh;
+    var shadow = (on && !n.c) ? ' filter="drop-shadow(0 0 5px rgba(30,111,186,.4))"' : '';
+
+    if (n.t === 'dia') {
+      var hw=n.w/2, hh=n.h/2;
+      html += '<polygon points="'+n.cx+','+n.y+' '+(n.cx+hw)+','+(n.y+hh)+' '+n.cx+','+(n.y+n.h)+' '+(n.cx-hw)+','+(n.y+hh)+'"'
+        +' fill="'+col.f+'" stroke="'+col.s+'" stroke-width="'+sw+'"'+shadow+'/>';
+    } else if (n.t === 'pill') {
+      html += '<rect x="'+(n.cx-n.w/2)+'" y="'+n.y+'" width="'+n.w+'" height="'+n.h+'" rx="20"'
+        +' fill="'+col.f+'" stroke="'+col.s+'" stroke-width="'+sw+'"/>';
+    } else {
+      html += '<rect x="'+(n.cx-n.w/2)+'" y="'+n.y+'" width="'+n.w+'" height="'+n.h+'" rx="7"'
+        +' fill="'+col.f+'" stroke="'+col.s+'" stroke-width="'+sw+'"'+shadow+'/>';
+    }
+
+    n.lines.forEach(function(line, i) {
+      var ty = n.y + n.h/2 - th/2 + lh*(i+0.82);
+      html += '<text x="'+n.cx+'" y="'+ty+'" text-anchor="middle" font-size="'+(n.t==='pill'?10:10.5)+'"'
+        +' font-weight="'+(on?700:500)+'" fill="'+(on&&!n.c?'#0f3a6e':'#1a2332')+'"'
+        +' font-family="-apple-system,BlinkMacSystemFont,sans-serif" pointer-events="none">'+line+'</text>';
+    });
+  });
+
+  svg.innerHTML = html;
+}
+
+/* ── QUESTION FLOW ─────────────────────────────────────────── */
+var STEPS = ['entry','echo','ct','ct_score','concom','age','age75','risk'];
+
+function setProgress(step) {
+  var i = STEPS.indexOf(step);
+  document.getElementById('prog').style.width = (i<0?100:Math.round(i/STEPS.length*100))+'%';
+}
+
+function push() {
+  S.hist.push({ step:S.step, ans:JSON.parse(JSON.stringify(S.ans)),
+    nodes:JSON.parse(JSON.stringify(S.nodes)), edges:JSON.parse(JSON.stringify(S.edges)) });
+}
+function act(id)  { S.nodes[id] = true; }
+function actE(id) { S.edges[id] = true; }
+
+function render() {
+  setProgress(S.step);
+  var back = S.hist.length ? '<button class="back" onclick="goBack()">← Back</button>' : '';
+  var h = '';
+
+  switch(S.step) {
+
+    case 'entry':
+      h = '<div class="q-card">'
+        +'<div class="q-tag">Entry Trigger</div>'
+        +'<div class="q-title">Is the patient undergoing urgent high-risk non-cardiac surgery?</div>'
+        +'<div class="q-sub">If yes, an automatic MDT referral is triggered immediately and the stratification pathway stops.</div>'
+        +'<div class="btn-group">'
+        +'<button class="opt" onclick="go(\'entry\',true)"><span class="opt-icon">🔵</span><div><div class="opt-main">Yes</div><div class="opt-hint">Automatic MDT referral — pathway ends here</div></div></button>'
+        +'<button class="opt" onclick="go(\'entry\',false)"><span class="opt-icon">➡️</span><div><div class="opt-main">No</div><div class="opt-hint">Proceed to echo severity assessment</div></div></button>'
+        +'</div>'
+        +'<div class="disc">⚠ Clinical decision support only. All outputs require clinician review.</div>'
+        +'</div>';
+      break;
+
+    case 'echo':
+      h = back+'<div class="q-card">'
+        +'<div class="q-tag">Step 1 — Echocardiography</div>'
+        +'<div class="q-title">Does the patient meet all three echo criteria for severe AS?</div>'
+        +'<div class="q-sub">All three must be satisfied:<br>&bull; Peak velocity <b>&gt; 4.0 m/s</b><br>&bull; Mean gradient <b>&gt; 40 mmHg</b><br>&bull; AVA <b>&lt; 1.0 cm²</b></div>'
+        +'<div class="btn-group">'
+        +'<button class="opt" onclick="go(\'echo\',true)"><span class="opt-icon">✅</span><div><div class="opt-main">Yes — all three met</div><div class="opt-hint">Severe AS confirmed by echo</div></div></button>'
+        +'<button class="opt" onclick="go(\'echo\',false)"><span class="opt-icon">⚠️</span><div><div class="opt-main">No — at least one fails</div><div class="opt-hint">Echo inconclusive → CT calcium scoring required</div></div></button>'
+        +'</div></div>';
+      break;
+
+    case 'ct':
+      h = back+'<div class="q-card">'
+        +'<div class="q-tag">Step 2 — CT Calcium Scoring</div>'
+        +'<div class="q-title">What is the patient\'s biological sex?</div>'
+        +'<div class="q-sub">CT aortic valve calcium score thresholds are sex-specific.</div>'
+        +'<div class="btn-group">'
+        +'<button class="opt" onclick="go(\'ct_sex\',\'male\')"><span class="opt-icon">♂</span><div><div class="opt-main">Male</div><div class="opt-hint">Confirms severe AS if score &gt; 2,000</div></div></button>'
+        +'<button class="opt" onclick="go(\'ct_sex\',\'female\')"><span class="opt-icon">♀</span><div><div class="opt-main">Female</div><div class="opt-hint">Confirms severe AS if score &gt; 1,100</div></div></button>'
+        +'</div></div>';
+      break;
+
+    case 'ct_score':
+      var thr = S.ans.ct_sex === 'male' ? 2000 : 1100;
+      h = back+'<div class="q-card">'
+        +'<div class="q-tag">Step 2 — CT Score ('+(S.ans.ct_sex==='male'?'Male':'Female')+')</div>'
+        +'<div class="q-title">Enter the CT aortic valve calcium score</div>'
+        +'<div class="q-sub">Severe AS confirmed if score <b>&gt; '+thr.toLocaleString()+'</b> Agatston units.</div>'
+        +'<div class="num-wrap"><div><div class="num-label">CT Calcium Score</div>'
+        +'<input class="num-input" type="number" id="ctv" min="0" step="1" placeholder="e.g. '+(thr+200)+'"/>'
+        +'<div class="num-unit">Agatston units</div></div>'
+        +'<button class="go-btn" onclick="submitCT()">Continue →</button></div></div>';
+      break;
+
+    case 'concom':
+      h = back+'<div class="q-card">'
+        +'<div class="q-tag">Step 3 — Concomitant Valve Disease</div>'
+        +'<div class="q-title">Does the patient have concurrent moderate or severe valve disease?</div>'
+        +'<div class="q-sub">e.g. moderate or severe mitral or tricuspid valve pathology</div>'
+        +'<div class="btn-group">'
+        +'<button class="opt" onclick="go(\'concom\',true)"><span class="opt-icon">✅</span><div><div class="opt-main">Yes — mod/severe concomitant disease</div><div class="opt-hint">Routes to SAVR / multi-valve surgery</div></div></button>'
+        +'<button class="opt" onclick="go(\'concom\',false)"><span class="opt-icon">❌</span><div><div class="opt-main">No — isolated aortic stenosis</div><div class="opt-hint">Proceed to age-based stratification</div></div></button>'
+        +'</div></div>';
+      break;
+
+    case 'age':
+      h = back+'<div class="q-card">'
+        +'<div class="q-tag">Step 4 — Age</div>'
+        +'<div class="q-title">What is the patient\'s age?</div>'
+        +'<div class="q-sub">Age ≥ 75 defaults to TAVI; under 75 is determined by surgical risk.</div>'
+        +'<div class="btn-group">'
+        +'<button class="opt" onclick="go(\'age\',\'gte75\')"><span class="opt-icon">👴</span><div><div class="opt-main">Aged 75 or older</div><div class="opt-hint">Default TAVI — subject to comorbidity override</div></div></button>'
+        +'<button class="opt" onclick="go(\'age\',\'lt75\')"><span class="opt-icon">🧑</span><div><div class="opt-main">Under 75</div><div class="opt-hint">Routing determined by surgical risk</div></div></button>'
+        +'</div></div>';
+      break;
+
+    case 'age75':
+      h = back+'<div class="q-card">'
+        +'<div class="q-tag">Step 4 — Age ≥ 75: Comorbidity Check</div>'
+        +'<div class="q-title">Does the patient have any of the following?</div>'
+        +'<div class="q-sub">&bull; Complex comorbidities<br>&bull; Hyper-frailty<br>&bull; Significant CAD (e.g. uncomplex 2-vessel proximal CAD)</div>'
+        +'<div class="btn-group">'
+        +'<button class="opt" onclick="go(\'age75\',true)"><span class="opt-icon">⚠️</span><div><div class="opt-main">Yes — one or more present</div><div class="opt-hint">TAVI overridden → MDT to weigh TAVI vs open surgery</div></div></button>'
+        +'<button class="opt" onclick="go(\'age75\',false)"><span class="opt-icon">✅</span><div><div class="opt-main">No — none present</div><div class="opt-hint">Standard TAVI pathway</div></div></button>'
+        +'</div></div>';
+      break;
+
+    case 'risk':
+      h = back+'<div class="q-card">'
+        +'<div class="q-tag">Step 4 — Surgical Risk (Age &lt; 75)</div>'
+        +'<div class="q-title">What is the patient\'s surgical risk classification?</div>'
+        +'<div class="q-sub">Based on perioperative risk scoring (e.g. EuroSCORE II, STS).</div>'
+        +'<div class="btn-group">'
+        +'<button class="opt" onclick="go(\'risk\',\'low\')"><span class="opt-icon">🟢</span><div><div class="opt-main">Low risk</div><div class="opt-hint">Routes to SAVR pathway</div></div></button>'
+        +'<button class="opt" onclick="go(\'risk\',\'intermediate\')"><span class="opt-icon">🟡</span><div><div class="opt-main">Intermediate risk</div><div class="opt-hint">Routes to SAVR pathway</div></div></button>'
+        +'<button class="opt" onclick="go(\'risk\',\'high\')"><span class="opt-icon">🔴</span><div><div class="opt-main">High risk</div><div class="opt-hint">Blocked from SAVR → MDT for urgent custom review</div></div></button>'
+        +'</div></div>';
+      break;
+
+    /* ── results ── */
+    case 'r_mdt_urg':
+      h = res('mdt','🔵 MDT Referral — Immediate',
+        'The patient is undergoing urgent high-risk non-cardiac surgery. An <b>automatic MDT referral is triggered immediately</b>.',
+        'Urgent high-risk non-cardiac surgery in the context of AS requires immediate multidisciplinary review. The standard stratification pathway does not apply.'); break;
+
+    case 'r_mdt_ct':
+      h = res('mdt','🔵 MDT Referral — Unconfirmed AS',
+        'Severe AS <b>cannot be confirmed</b> by CT calcium scoring. The patient does not meet the sex-specific threshold.',
+        (S.ans.ct_sex==='male'?'Male patient: score ≤ 2,000.':'Female patient: score ≤ 1,100.')+' AS unconfirmed by both echo and CT. Routed to MDT for urgent tailored clinical review.'); break;
+
+    case 'r_savr_m':
+      h = res('savr','🔶 SAVR / Multi-Valve Surgery',
+        'Concomitant moderate or severe valve disease present. Patient routed to <b>open surgical pathway (SAVR + multi-valve surgery)</b>.',
+        'Concomitant valve disease bypasses age and frailty algorithms. Open surgery required to address all valve pathology simultaneously.'); break;
+
+    case 'r_tavi':
+      h = res('tavi','🟢 TAVI Pathway',
+        'Patient aged ≥ 75 with no comorbidity override. Standard default is <b>TAVI (Transcatheter Aortic Valve Implantation)</b>.',
+        'Age ≥ 75, confirmed severe AS, no concomitant valve disease, no comorbidity override. TAVI is the recommended first-line intervention.'); break;
+
+    case 'r_mdt_75':
+      h = res('mdt','🔵 MDT Referral — TAVI vs Surgery',
+        'Patient aged ≥ 75 with <b>complex comorbidities, hyper-frailty, or significant CAD</b>. Standard TAVI route is overridden.',
+        'These factors require multidisciplinary input to weigh TAVI against open surgery. MDT review mandatory before proceeding.'); break;
+
+    case 'r_savr':
+      h = res('savr','🔶 SAVR Pathway',
+        'Patient under 75 with <b>Low or Intermediate surgical risk</b>. Routed to <b>SAVR (Surgical Aortic Valve Replacement)</b>.',
+        'Age < 75, confirmed severe AS, no concomitant valve disease, acceptable surgical risk. SAVR offers durable long-term valve replacement.'); break;
+
+    case 'r_mdt_hi':
+      h = res('mdt','🔵 MDT Referral — High Surgical Risk',
+        'Patient under 75 with <b>High surgical risk</b>. Blocked from standard SAVR pathway.',
+        'High surgical risk requires urgent custom MDT review to determine whether TAVI, modified surgical approach, or other intervention is appropriate.'); break;
+  }
+
+  document.getElementById('qc').innerHTML = h;
+  drawTree();
+}
+
+function res(cls, title, body, rat) {
+  return '<div class="q-card"><div class="result '+cls+'">'
+    +'<div class="r-title">'+title+'</div>'
+    +'<div class="r-body">'+body+'</div>'
+    +'<div class="r-rat"><b>Rationale:</b> '+rat+'</div>'
+    +'</div><button class="restart" onclick="restart()">↺ New Patient</button></div>';
+}
+
+/* ── LOGIC ─────────────────────────────────────────────────── */
+function go(key, val) {
+  push();
+  S.ans[key] = val;
+
+  if (key === 'entry') {
+    act('entry');
+    if (val) { actE('e_entry_mdt'); act('mdt_urg'); S.step = 'r_mdt_urg'; }
+    else     { actE('e_entry_echo'); act('echo');   S.step = 'echo'; }
+
+  } else if (key === 'echo') {
+    act('echo');
+    if (val) { actE('e_echo_sv'); act('severe'); S.step = 'concom'; }
+    else     { actE('e_echo_ct'); act('ct');     S.step = 'ct'; }
+
+  } else if (key === 'ct_sex') {
+    act('ct'); actE('e_ct_sex'); act('ct_sex');
+    S.step = 'ct_score';
+
+  } else if (key === 'concom') {
+    act('concom');
+    if (val) { actE('e_con_sm'); act('savr_m'); S.step = 'r_savr_m'; }
+    else     { actE('e_con_age'); act('age');   S.step = 'age'; }
+
+  } else if (key === 'age') {
+    act('age');
+    if (val==='gte75') { actE('e_age_75');   act('age75'); S.step = 'age75'; }
+    else               { actE('e_age_risk'); act('risk');  S.step = 'risk'; }
+
+  } else if (key === 'age75') {
+    act('age75');
+    if (val) { actE('e_75_mdt');  act('mdt_75'); S.step = 'r_mdt_75'; }
+    else     { actE('e_75_tavi'); act('tavi');   S.step = 'r_tavi'; }
+
+  } else if (key === 'risk') {
+    act('risk');
+    if (val==='high') { actE('e_risk_mdt');  act('mdt_hi'); S.step = 'r_mdt_hi'; }
+    else              { actE('e_risk_savr'); act('savr');   S.step = 'r_savr'; }
+  }
+
+  render();
+}
+
+function submitCT() {
+  var inp = document.getElementById('ctv');
+  var score = parseFloat(inp.value);
+  if (isNaN(score) || score < 0) { inp.style.borderColor='#c0392b'; return; }
+  push();
+  S.ans.ct_score = score;
+  var thr = S.ans.ct_sex === 'male' ? 2000 : 1100;
+  act('ct_sex');
+  if (score > thr) {
+    actE('e_sex_sv'); actE('e_sv_con'); act('severe');
+    S.step = 'concom';
+  } else {
+    actE('e_sex_mdt'); act('mdt_ct');
+    S.step = 'r_mdt_ct';
+  }
+  render();
+}
+
+function goBack() {
+  if (!S.hist.length) return;
+  var p = S.hist.pop();
+  S.step = p.step; S.ans = p.ans; S.nodes = p.nodes; S.edges = p.edges;
+  render();
+}
+
+function restart() {
+  S = { step:'entry', ans:{}, hist:[], nodes:{}, edges:{} };
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
